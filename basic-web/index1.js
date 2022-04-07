@@ -1,22 +1,16 @@
 const http = require("http");
-const fs = require("fs")
+const fs = require("fs");
 const qs = require("querystring");
 const url = require("url");
 
 const app = http.createServer((req, res) => {
-    var _url = req.url;
-    const queryData = url.parse(_url, 1).query;
-    var title = queryData.id;
-    console.log(queryData.name);
-    if (req.url == "/") {
-        _url = "/index.html";
-    }
-    if (req.url == "/favicon.ico") {
-        return res.writeHead(404);
-    }
-    res.writeHead(200);
+  const _url = req.url;
+  const queryData = url.parse(_url, 1).query;
+  const title = queryData.id;
+  const pathname = url.parse(_url, true).pathname;
+  if (pathname === "/" || pathname === "/index.html") {
     fs.readFile(`data/${queryData.id}`, "utf-8", function (err, description) {
-        var template = `<!doctype html>
+      var template = `<!doctype html>
         <html>
         <head>
           <title>WEB1 - HTML</title>
@@ -29,17 +23,17 @@ const app = http.createServer((req, res) => {
             <li><a href="/?id=CSS">CSS</a></li>
             <li><a href="/?id=Javascript">JavaScript</a></li>
           </ol>
-          <h2>${title}</h2>
-          <p>${description}</p>
+          <h2>${title || "환영합니다."}</h2>
+          <p>${description || "홈페이지 입니다."}</p>
         </body>
         </html>
         `;
-
-        res.end(template);
-    })
-    // res.end(fs.readFileSync(__dirname + _url));
-    // res.end(queryData.name);
-    // console.log(queryData.name);
+      res.writeHead(200);
+      res.end(template);
+    });
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
 });
-
 app.listen(65535);
