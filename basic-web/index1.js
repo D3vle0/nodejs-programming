@@ -9,8 +9,13 @@ const app = http.createServer((req, res) => {
   const title = queryData.id;
   const pathname = url.parse(_url, true).pathname;
   if (pathname === "/" || pathname === "/index.html") {
-    fs.readFile(`data/${queryData.id}`, "utf-8", function (err, description) {
-      var template = `<!doctype html>
+    fs.readFile(`./data/${queryData.id}`, "utf-8", (err, description) => {
+      fs.readdir("./data", (err, filelist) => {
+        let list = "<ol>";
+        for (let i = 0; i < filelist.length; i++)
+          list += `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`;
+        list += "</ol>";
+        const template = `<!doctype html>
         <html>
         <head>
           <title>WEB1 - HTML</title>
@@ -18,22 +23,21 @@ const app = http.createServer((req, res) => {
         </head>
         <body>
           <h1><a href="index.html">WEB</a></h1>
-          <ol>
-            <li><a href="/?id=HTML">HTML</a></li>
-            <li><a href="/?id=CSS">CSS</a></li>
-            <li><a href="/?id=Javascript">JavaScript</a></li>
-          </ol>
+          ${list}
           <h2>${title || "환영합니다."}</h2>
           <p>${description || "홈페이지 입니다."}</p>
         </body>
         </html>
         `;
-      res.writeHead(200);
-      res.end(template);
+        res.writeHead(200);
+        res.end(template);
+      })
     });
   } else {
     res.writeHead(404);
     res.end("Not Found");
   }
 });
-app.listen(65535);
+app.listen(65535, () => {
+  console.log("start");
+});
