@@ -37,7 +37,7 @@ const app = http.createServer((req, res) => {
     fs.readFile(`./data/${queryData.id}`, "utf-8", (err, description) => {
       fs.readdir("./data", (err, filelist) => {
         const list = templatelist(filelist);
-        const template = templateHTML(title, list, `<h2>${title || "환영합니다."}</h2> <p>${description || "홈페이지 입니다."}</p>`);
+        const template = templateHTML(title, list, `<h2>${title || "환영합니다."}</h2> <p>${description || "홈페이지 입니다.<br><br><a href='/create'><button>create</button></a>"}</p>`);
         res.writeHead(200);
         res.end(template);
       })
@@ -56,6 +56,22 @@ const app = http.createServer((req, res) => {
       res.writeHead(200);
       res.end(template);
     })
+  }
+  else if (pathname === "/create_process") {
+    var body = "";
+    req.on("data", (data) => {
+      body += data;
+    })
+    req.on("end", () => {
+      const post = qs.parse(body);
+      const title = post.title;
+      const description = post.description;
+      fs.writeFile(`./data/${title}`, description, "utf-8", (err) => {
+        res.writeHead(302, { Location: `/?id=${title}` });
+        res.end("create_process");
+      });
+      console.log(post);
+    });
   }
   else {
     res.writeHead(404);
