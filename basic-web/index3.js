@@ -2,6 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const qs = require("querystring");
 const url = require("url");
+const PORT = 65535;
 
 function templateHTML(title, list, body) {
   return `<!doctype html>
@@ -20,7 +21,7 @@ function templateHTML(title, list, body) {
 }
 
 function templatelist(filelist) {
-  let list = "<ol>"; 
+  let list = "<ol>";
   for (let i = 0; i < filelist.length; i++)
     list += `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`;
   list += "</ol>";
@@ -35,17 +36,32 @@ const app = http.createServer((req, res) => {
   if (pathname === "/" || pathname === "/index.html") {
     fs.readFile(`./data/${queryData.id}`, "utf-8", (err, description) => {
       fs.readdir("./data", (err, filelist) => {
-        var list = templatelist(filelist);
-        var template = templateHTML(title, list, `<h2>${title || "환영합니다."}</h2> <p>${description || "홈페이지 입니다."}</p>`);
+        const list = templatelist(filelist);
+        const template = templateHTML(title, list, `<h2>${title || "환영합니다."}</h2> <p>${description || "홈페이지 입니다."}</p>`);
         res.writeHead(200);
         res.end(template);
       })
     });
-  } else {
+  }
+  else if (pathname === "/create") {
+    fs.readdir("./data", (err, filelist) => {
+      const title = "create";
+      const list = templatelist(filelist);
+      const template = templateHTML(title, list, `
+      <form action="http://localhost:${PORT}/create_process" method="post">
+        <p><input type="text" name="title"></p>
+        <p><textarea name="description"></textarea></p>
+        <input type="submit" value="submit">
+      </form>`);
+      res.writeHead(200);
+      res.end(template);
+    })
+  }
+  else {
     res.writeHead(404);
     res.end("Not Found");
   }
 });
-app.listen(65535, () => {
+app.listen(PORT, () => {
   console.log("start");
 });
