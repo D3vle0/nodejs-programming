@@ -20,7 +20,7 @@ function templateHTML(title, list, body) {
 }
 
 function templatelist(filelist) {
-  let list = "<ol>"; 
+  let list = "<ol>";
   for (let i = 0; i < filelist.length; i++)
     list += `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`;
   list += "</ol>";

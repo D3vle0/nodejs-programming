@@ -7,7 +7,6 @@ const app = http.createServer((req, res) => {
     var _url = req.url;
     const queryData = url.parse(_url, 1).query;
     var title = queryData.id;
-    console.log(queryData.name);
     if (req.url == "/") {
         _url = "/index.html";
     }
