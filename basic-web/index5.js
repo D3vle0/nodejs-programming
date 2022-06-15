@@ -46,23 +46,24 @@ const app = http.createServer((req, res) => {
 	const pathname = url.parse(_url, true).pathname;
 	if (pathname === "/" || pathname === "/index.html") {
 		db.query(`SELECT * FROM topic`, (err, topics) => {
-			if (err) throw err;
 			if (queryData.id) {
 				db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id], (err2, topic_row) => {
-					if (err2) throw err2;
 					try {
-						const title = topic_row[0].title;
-						const description = topic_row[0].description;
-						var html = template.html(title, template.list(topics),
-							`<h2>${htmlEscape(title) || "환영합니다."}</h2>
-							<p>${description || "홈페이지 입니다."}</p> 
-							<a href="/update?id=${queryData.id}"><input type="button" value="글 수정"></a> 
-							<form action="/delete_process" method="POST"> 
-								<input type="hidden" name="id" value="${queryData.id}"> 
-								<input type="submit" value="글 삭제" onclick="return(confirm('정말로 삭제하시겠습니까?'))"> 
-							</form>`);
-						res.writeHead(200);
-						res.end(html);
+						db.query(`SELECT * FROM author WHERE id=?`, [topic_row[0].author_id], (err3, authors) => {
+							const title = topic_row[0].title;
+							const description = topic_row[0].description;
+							var html = template.html(title, template.list(topics),
+								`<h2>${htmlEscape(title) || "환영합니다."}</h2>
+                        <p>${htmlEscape(description) || "홈페이지 입니다."}</p> 
+                        <p>${authors[0].name}</p>
+                        <a href="/update?id=${queryData.id}"><input type="button" value="글 수정"></a> 
+                        <form action="/delete_process" method="POST"> 
+                            <input type="hidden" name="id" value="${queryData.id}"> 
+                            <input type="submit" value="글 삭제" onclick="return(confirm('정말로 삭제하시겠습니까?'))"> 
+                        </form>`);
+							res.writeHead(200);
+							res.end(html);
+						});
 					}
 					catch (e) {
 						res.writeHead(404);
@@ -73,8 +74,8 @@ const app = http.createServer((req, res) => {
 			else {
 				var html = template.html("Home", template.list(topics),
 					`<h2>환영합니다.</h2>
-						<p>홈페이지 입니다.</p>
-						<a href="/create"><input type="button" value="글 작성"></a>`);
+                <p>홈페이지 입니다.</p>
+                <a href="/create"><input type="button" value="글 작성"></a>`);
 				res.writeHead(200);
 				res.end(html);
 			}
@@ -82,13 +83,15 @@ const app = http.createServer((req, res) => {
 	}
 	else if (pathname === "/create") {
 		db.query(`SELECT * FROM topic`, (err, topics) => {
-			db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id], (err2, topic_row) => {
+			db.query(`SELECT * FROM author`, (err2, authors) => {
 				const title = "create";
 				const list = template.list(topics);
+				const tag = template.authorSelect(authors, 1)
 				const html = template.html(title, list, `
-				<form action="http://localhost:${PORT}/create_process" method="post">
-					<p><input type="text" name="title"></p>
-					<p><textarea name="description"></textarea></p>
+				<form action="http://localhost:65535/create_process" method="post">
+					<p><input type="text" name="title" required></p>
+					<p><textarea name="description" required></textarea></p>
+					<p>${tag}</p>
 					<input type="submit" value="작성">
 				</form>`);
 				res.writeHead(200);
@@ -105,9 +108,10 @@ const app = http.createServer((req, res) => {
 			const post = qs.parse(body);
 			const title = htmlEscape(post.title);
 			const description = htmlEscape(post.description);
+			const author = post.author;
 			const time = current_time();
 			console.log(title, description, time);
-			db.query(`INSERT INTO topic (title, description, created, author_id) VALUES (?, ?, ?, ?)`, [title, description, time, 1], (err, result) => {
+			db.query(`INSERT INTO topic (title, description, created, author_id) VALUES (?, ?, ?, ?)`, [title, description, time, author], (err, result) => {
 				res.writeHead(302, { Location: `/` });
 				res.end("create_process");
 			});
@@ -116,24 +120,28 @@ const app = http.createServer((req, res) => {
 	else if (pathname === "/update") {
 		db.query(`SELECT * FROM topic`, (err, topics) => {
 			db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id], (err, topic_row) => {
-				try {
-					const title = topic_row[0].title;
-					const description = topic_row[0].description;
-					const list = template.list(topics);
-					const html = template.html(title, list, `
-					<form action="http://localhost:${PORT}/update_process" method="post">
-					<input type="hidden" name="id" value="${queryData.id}">
-						<p><input type="text" name="title" value=${title}></p>
-						<p><textarea name="description">${description}</textarea></p>
-						<input type="submit" value="수정">
-					</form>`);
-					res.writeHead(200);
-					res.end(html);
-				}
-				catch (e) {
-					res.writeHead(404);
-					res.end("<h1>Not Found</h1>");
-				}
+				db.query(`SELECT * FROM author`, (err2, authors) => {
+					try {
+						const title = topic_row[0].title;
+						const description = topic_row[0].description;
+						const list = template.list(topics);
+						const tag = template.authorSelect(authors, topic_row[0].author_id);
+						const html = template.html(title, list, `
+						<form action="http://localhost:65535/update_process" method="post">
+						<input type="hidden" name="id" value="${queryData.id}">
+							<p><input type="text" name="title" value=${title} required></p>
+							<p><textarea name="description" required>${description}</textarea></p>
+							<p>${tag}</p>
+							<input type="submit" value="수정">
+						</form>`);
+						res.writeHead(200);
+						res.end(html);
+					}
+					catch (e) {
+						res.writeHead(404);
+						res.end("<h1>Not Found</h1>");
+					}
+				});
 			});
 		});
 	}
@@ -147,7 +155,8 @@ const app = http.createServer((req, res) => {
 			const id = htmlEscape(post.id);
 			const title = htmlEscape(post.title);
 			const description = htmlEscape(post.description);
-			db.query(`UPDATE topic SET title=?, description=? WHERE id=?`, [title, description, id], (err, result) => {
+			const author = htmlEscape(post.author);
+			db.query(`UPDATE topic SET title=?, description=?, author_id=? WHERE id=?`, [title, description, author, id], (err, result) => {
 				res.writeHead(302, { Location: `/?id=${id}` });
 				res.end("update_process");
 			});

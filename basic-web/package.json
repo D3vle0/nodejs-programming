@@ -5,9 +5,10 @@
   "author": "D3vle0",
   "license": "MIT",
   "scripts": {
-    "start": "node index5.js"
+    "start": "nodemon index6.js"
   },
   "dependencies": {
+    "body-parser": "^1.20.0",
     "dotenv": "^16.0.1",
     "mysql": "^2.18.1",
     "sqlstring": "^2.3.3"
